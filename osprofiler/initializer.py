@@ -12,12 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from oslo_config.cfg import ConfigOpts
 
 from osprofiler import notifier
 from osprofiler import web
 
 
-def init_from_conf(conf, context, project, service, host, **kwargs):
+def init_from_conf(conf: ConfigOpts, context, project: str, service, host, **kwargs):
     """Initialize notifier from service configuration
 
     :param conf: service configuration
@@ -28,7 +29,7 @@ def init_from_conf(conf, context, project, service, host, **kwargs):
                  running on.
     :param kwargs: other arguments for notifier creation
     """
-    connection_str = conf.profiler.connection_string
+    connection_str: str = conf.profiler.connection_string
     _notifier = notifier.create(
         connection_str,
         context=context,

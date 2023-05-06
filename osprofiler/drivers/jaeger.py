@@ -16,6 +16,7 @@
 import collections
 import datetime
 import time
+import jaeger_client
 from urllib import parse as parser
 
 from oslo_config import cfg
@@ -35,7 +36,6 @@ class Jaeger(base.Driver):
                                      service=service, host=host,
                                      conf=conf, **kwargs)
         try:
-            import jaeger_client
             self.jaeger_client = jaeger_client
         except ImportError:
             raise exc.CommandError(
