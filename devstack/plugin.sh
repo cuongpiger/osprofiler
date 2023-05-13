@@ -5,8 +5,8 @@
 XTRACE=$(set +o | grep xtrace)
 set -o xtrace
 
-if [[ "$OSPROFILER_DIRECTORY_PATH" != "" ]]; then
-  source $OSPROFILER_DIRECTORY_PATH/devstack/lib/osprofiler
+if [[ "$OSPROFILER_DIR" != "" ]]; then
+  source $OSPROFILER_DIR/devstack/lib/osprofiler
 else
   source $DEST/osprofiler/devstack/lib/osprofiler
 fi
