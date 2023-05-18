@@ -72,6 +72,7 @@ function install_jaeger() {
     fi
   fi
 
+  pip_uninstall jaeger-client
   pip_install $PYTHON_JAEGERCLIENT
 }
 
@@ -151,7 +152,6 @@ function configure_osprofiler() {
 }
 
 function configure_osprofiler_in_tempest() {
-
   iniset $TEMPEST_CONFIG profiler key $OSPROFILER_HMAC_KEYS
 }
 
