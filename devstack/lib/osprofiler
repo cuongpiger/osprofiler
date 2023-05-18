@@ -72,7 +72,7 @@ function install_jaeger() {
     fi
   fi
 
-  pip_install jaeger-client
+  pip_install $PYTHON_JAEGERCLIENT
 }
 
 function drop_jaeger() {
