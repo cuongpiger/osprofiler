@@ -156,6 +156,14 @@ Possible values:
 * False: Disable the filter.
 """)
 
+_enable_http_request_trace_opt = cfg.BoolOpt(
+    "enable_http_request_trace",
+    default=False,
+    help="""
+Enable tracing of HTTP requests. Clients can specify the HMAC key in the request header.
+    """
+)
+
 _PROFILER_OPTS = [
     _enabled_opt,
     _trace_sqlalchemy_opt,

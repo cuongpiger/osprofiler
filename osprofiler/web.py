@@ -12,25 +12,22 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from typing import Optional
 
 import webob.dec
-
 from osprofiler import _utils as utils
 from osprofiler import profiler
+from typing import Optional, List
 
 # Trace keys that are required or optional, any other
 # keys that are present will cause the trace to be rejected...
 _REQUIRED_KEYS = ("base_id", "hmac_key")
 _OPTIONAL_KEYS = ("parent_id",)
 
-#: Http header that will contain the needed traces data.
-X_TRACE_INFO = "X-Trace-Info"
+#: Http header that will contain the needed traces' data.
+X_TRACE_INFO: str = "X-Trace-Info"
 
 #: Http header that will contain the traces data hmac (that will be validated).
-X_TRACE_HMAC = "X-Trace-HMAC"
-
-X_TRACE_TOKEN = "X-Trace-Token"
+X_TRACE_HMAC: str = "X-Trace-HMAC"
 
 
 def get_trace_id_headers():
@@ -46,8 +43,8 @@ def get_trace_id_headers():
     return {}
 
 
-_ENABLED = None
-_HMAC_KEYS = None
+_ENABLED: Optional[bool] = None
+_HMAC_KEYS: Optional[List[str]] = None
 
 
 def disable():
@@ -60,8 +57,8 @@ def disable():
     _ENABLED = False
 
 
-def enable(hmac_keys=None):
-    """Enable middleware."""
+def enable(hmac_keys: Optional[List[str]] = None):
+    """Enable OSprofiler middleware."""
     global _ENABLED, _HMAC_KEYS
     _ENABLED = True
     _HMAC_KEYS = utils.split(hmac_keys or "")
@@ -70,20 +67,15 @@ def enable(hmac_keys=None):
 class WsgiMiddleware(object):
     """WSGI Middleware that enables tracing for an application."""
 
-    def __init__(self, application, hmac_keys=None, enabled=False, **kwargs):
+    def __init__(self, application, hmac_keys: Optional[str] = None, enabled=False, **kwargs):
         """Initialize middleware with api-paste.ini arguments.
 
-        :application: wsgi app, it is the app object from Flask, Django, Pecan, etc.
-        :hmac_keys: Only trace header that was signed with one of these
-                    hmac keys will be processed. This limitation is
-                    essential, because it allows to profile OpenStack
-                    by only those who knows this key which helps
-                    avoid DDOS.
-        :enabled: This middleware can be turned off fully if enabled is False.
-        :kwargs: Other keyword arguments.
-                 NOTE(tovin07): Currently, this `kwargs` is not used at all.
-                 It's here to avoid some extra keyword arguments in local_conf
-                 that cause `__init__() got an unexpected keyword argument`.
+        :param application: WSGI application, it is the app object from Flask, Django, Pecan, etc.
+        :param hmac_keys: Only trace header that was signed with one of these hmac keys will be processed. This
+                          limitation is essential, because it allows to profile OpenStack by only those who knows this
+                          key which helps avoid DDOS.
+        :param enabled: This middleware can be turned off fully if enabled is False.
+        :param kwargs: Other keyword arguments..
         """
         self.application = application
         self.name: str = "wsgi"
@@ -115,7 +107,6 @@ class WsgiMiddleware(object):
 
         trace_info = utils.signed_unpack(request.headers.get(X_TRACE_INFO),
                                          request.headers.get(X_TRACE_HMAC),
-                                         request.headers.get(X_TRACE_TOKEN),
                                          _HMAC_KEYS or self.hmac_keys)
 
         if not self._trace_is_valid(trace_info):

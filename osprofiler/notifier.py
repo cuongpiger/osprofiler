@@ -17,7 +17,6 @@ import logging
 
 from osprofiler.drivers import base
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -43,7 +42,7 @@ def get():
     return __notifier
 
 
-def set(notifier):
+def set(notifier: classmethod(base.Driver)):
     """Service that are going to use profiler should set callable notifier.
 
        Callable notifier is instance of callable object, that accept exactly
@@ -54,26 +53,29 @@ def set(notifier):
     __notifier = notifier
 
 
-def create(connection_string, *args, **kwargs):
+def create(connection_string: str, *args, **kwargs) -> classmethod(base.Driver):
     """Create notifier based on specified plugin_name
 
-    :param connection_string: connection string which specifies the storage
-                              driver for notifier
+    :param connection_string: connection string which specifies the storage driver for notifier, such as
+        jaeger://<host>:<port>
     :param args: args that will be passed to the driver's __init__ method
     :param kwargs: kwargs that will be passed to the driver's __init__ method
+
     :returns: Callable notifier method
     """
+
     global __notifier_cache
     if connection_string not in __notifier_cache:
         try:
             driver = base.get_driver(connection_string, *args, **kwargs)
-            __notifier_cache[connection_string] = driver.notify
-            LOG.info("osprofiler is enabled with connection string: %s",
-                     connection_string)
+
+            # [cuongdm] driver.notify is a method of subclass of base.Driver, which notifies profiling information
+            __notifier_cache[connection_string]: classmethod(base.Driver) = driver.notify
+            LOG.info("OSprofiler is enabled with connection string %s", connection_string)
         except Exception:
-            LOG.exception("Could not initialize driver for connection string "
-                          "%s, osprofiler is disabled", connection_string)
-            __notifier_cache[connection_string] = _noop_notifier
+            LOG.exception(
+                "Could not initialize driver for connection string " "%s, osprofiler is disabled", connection_string)
+            __notifier_cache[connection_string]: classmethod(base.Driver) = _noop_notifier
 
     return __notifier_cache[connection_string]
 

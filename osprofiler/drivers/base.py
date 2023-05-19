@@ -22,7 +22,7 @@ from osprofiler import _utils
 LOG = logging.getLogger(__name__)
 
 
-def get_driver(connection_string, *args, **kwargs):
+def get_driver(connection_string: str, *args, **kwargs):
     """Create driver's instance according to specified connection string"""
     # NOTE(ayelistratov) Backward compatibility with old Messaging notation
     # Remove after patching all OS services
@@ -31,16 +31,15 @@ def get_driver(connection_string, *args, **kwargs):
         connection_string += "://"
 
     parsed_connection = urlparse.urlparse(connection_string)
-    LOG.debug("String %s looks like a connection string, trying it.",
-              connection_string)
-
     backend = parsed_connection.scheme
+    LOG.debug("String %s looks like a connection string, trying it.", connection_string)
+
     # NOTE(toabctl): To be able to use the connection_string for as sqlalchemy
     # connection string, transform the backend to the correct driver
     # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
-    if backend in ["mysql", "mysql+pymysql", "mysql+mysqldb",
-                   "postgresql", "postgresql+psycopg2"]:
+    if backend in ["mysql", "mysql+pymysql", "mysql+mysqldb", "postgresql", "postgresql+psycopg2"]:
         backend = "sqlalchemy"
+
     for driver in _utils.itersubclasses(Driver):
         if backend == driver.get_name():
             return driver(connection_string, *args, **kwargs)
@@ -60,9 +59,8 @@ class Driver(object):
 
     default_trace_fields = {"base_id", "timestamp"}
 
-    def __init__(self, connection_str, project=None, service=None, host=None,
-                 **kwargs):
-        self.connection_str = connection_str
+    def __init__(self, connection_str, project=None, service=None, host=None, **kwargs):
+        self.connection_str: str = connection_str
         self.project = project
         self.service = service
         self.host = host
@@ -96,7 +94,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-                                      self.get_name()))
+            self.get_name()))
 
     def get_report(self, base_id):
         """Forms and returns report composed from the stored notifications.
@@ -105,7 +103,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-                                      self.get_name()))
+            self.get_name()))
 
     @classmethod
     def get_name(cls):
@@ -122,7 +120,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-                                      self.get_name()))
+            self.get_name()))
 
     def list_error_traces(self):
         """Query all error traces from the storage.
@@ -132,7 +130,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-                                      self.get_name()))
+            self.get_name()))
 
     @staticmethod
     def _build_tree(nodes):

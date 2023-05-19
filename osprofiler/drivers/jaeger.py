@@ -16,12 +16,10 @@
 import collections
 import datetime
 import time
-import jaeger_client
+import oslo_config.cfg
 from urllib import parse as parser
-
 from oslo_config import cfg
 from oslo_serialization import jsonutils
-
 from osprofiler import _utils as utils
 from osprofiler.drivers import base
 from osprofiler import exc
@@ -32,10 +30,10 @@ class Jaeger(base.Driver):
                  conf=cfg.CONF, **kwargs):
         """Jaeger driver for OSProfiler."""
 
-        super(Jaeger, self).__init__(connection_str, project=project,
-                                     service=service, host=host,
-                                     conf=conf, **kwargs)
+        super(Jaeger, self).__init__(connection_str, project=project, service=service,
+                                     host=host, conf=conf, **kwargs)
         try:
+            import jaeger_client  # import the `python-jaeger-client` library
             self.jaeger_client = jaeger_client
         except ImportError:
             raise exc.CommandError(
@@ -45,23 +43,23 @@ class Jaeger(base.Driver):
             )
 
         parsed_url = parser.urlparse(connection_str)
-        cfg = {
+        cfg_: dict = {
             "local_agent": {
                 "reporting_host": parsed_url.hostname,
                 "reporting_port": parsed_url.port,
             },
-            "tags": conf.profiler_jaeger.process_tags
+            "tags": conf.profiler_jaeger.process_tags  # `tags` is a dict data type
         }
 
         # Initialize tracer for each profiler
         service_name = self._get_service_name(conf, project, service)
-        config = jaeger_client.Config(cfg, service_name=service_name)
+        config = jaeger_client.Config(cfg_, service_name=service_name)
         self.tracer = config.initialize_tracer()
 
         self.spans = collections.deque()
 
-    def _get_service_name(self, conf, project, service):
-        prefix = conf.profiler_jaeger.service_name_prefix
+    def _get_service_name(self, conf: oslo_config.cfg.ConfigOpts, project: str, service: str):
+        prefix: str = conf.profiler_jaeger.service_name_prefix
         if prefix:
             return "{}-{}-{}".format(prefix, project, service)
         return "{}-{}".format(project, service)
@@ -72,8 +70,7 @@ class Jaeger(base.Driver):
 
     def notify(self, payload):
         if payload["name"].endswith("start"):
-            timestamp = datetime.datetime.strptime(payload["timestamp"],
-                                                   "%Y-%m-%dT%H:%M:%S.%f")
+            timestamp = datetime.datetime.strptime(payload["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
             epoch = datetime.datetime.utcfromtimestamp(0)
             start_time = (timestamp - epoch).total_seconds()
 
