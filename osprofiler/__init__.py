@@ -20,4 +20,5 @@ except ImportError:
     # For everyone else
     import importlib_metadata
 
-__version__ = importlib_metadata.version("osprofiler")
+# __version__ = importlib_metadata.version("osprofiler")
+__version__ = "3.4.4"  # hard-coded version number to avoid dependency on importlib_metadata

@@ -19,6 +19,7 @@ import hmac
 import json
 import os
 import uuid
+from typing import List
 
 from oslo_utils import secretutils
 from oslo_utils import uuidutils
@@ -83,7 +84,7 @@ def signed_pack(data, hmac_key):
     return raw_data, generate_hmac(raw_data, hmac_key) if hmac_key else None
 
 
-def signed_unpack(data, hmac_data, hmac_keys):
+def signed_unpack(data, hmac_data, hmac_keys: List[str]):
     """Unpack data and check that it was signed with hmac_key.
 
     :param data: json string that was singed_packed.
@@ -96,6 +97,8 @@ def signed_unpack(data, hmac_data, hmac_keys):
     """
     # NOTE(boris-42): For security reason, if there is no hmac_data or
     #                 hmac_keys we don't trust data => return None.
+
+    print(f"DEBUG: hmac_keys: {hmac_keys}, {type(hmac_data)}, hmac_data: {hmac_data}")
     if not (hmac_keys and hmac_data):
         return None
     hmac_data = hmac_data.strip()
@@ -104,7 +107,8 @@ def signed_unpack(data, hmac_data, hmac_keys):
     for hmac_key in hmac_keys:
         try:
             user_hmac_data = generate_hmac(data, hmac_key)
-        except Exception:  # nosec
+        except (Exception,):
+            # it occurs when hmac_key is not decoded properly
             pass
         else:
             if secretutils.constant_time_compare(hmac_data, user_hmac_data):
@@ -124,7 +128,7 @@ def itersubclasses(cls, _seen=None):
     _seen = _seen or set()
     try:
         subs = cls.__subclasses__()
-    except TypeError:   # fails only when cls is type
+    except TypeError:  # fails only when cls is type
         subs = cls.__subclasses__(cls)
     for sub in subs:
         if sub not in _seen:

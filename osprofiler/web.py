@@ -12,12 +12,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from typing import Optional
 
 import webob.dec
 
 from osprofiler import _utils as utils
 from osprofiler import profiler
-
 
 # Trace keys that are required or optional, any other
 # keys that are present will cause the trace to be rejected...
@@ -29,6 +29,8 @@ X_TRACE_INFO = "X-Trace-Info"
 
 #: Http header that will contain the traces data hmac (that will be validated).
 X_TRACE_HMAC = "X-Trace-HMAC"
+
+X_TRACE_TOKEN = "X-Trace-Token"
 
 
 def get_trace_id_headers():
@@ -71,7 +73,7 @@ class WsgiMiddleware(object):
     def __init__(self, application, hmac_keys=None, enabled=False, **kwargs):
         """Initialize middleware with api-paste.ini arguments.
 
-        :application: wsgi app
+        :application: wsgi app, it is the app object from Flask, Django, Pecan, etc.
         :hmac_keys: Only trace header that was signed with one of these
                     hmac keys will be processed. This limitation is
                     essential, because it allows to profile OpenStack
@@ -84,14 +86,15 @@ class WsgiMiddleware(object):
                  that cause `__init__() got an unexpected keyword argument`.
         """
         self.application = application
-        self.name = "wsgi"
-        self.enabled = enabled
+        self.name: str = "wsgi"
+        self.enabled: bool = enabled
         self.hmac_keys = utils.split(hmac_keys or "")
 
     @classmethod
     def factory(cls, global_conf, **local_conf):
         def filter_(app):
             return cls(app, **local_conf)
+
         return filter_
 
     def _trace_is_valid(self, trace_info):
@@ -112,6 +115,7 @@ class WsgiMiddleware(object):
 
         trace_info = utils.signed_unpack(request.headers.get(X_TRACE_INFO),
                                          request.headers.get(X_TRACE_HMAC),
+                                         request.headers.get(X_TRACE_TOKEN),
                                          _HMAC_KEYS or self.hmac_keys)
 
         if not self._trace_is_valid(trace_info):
