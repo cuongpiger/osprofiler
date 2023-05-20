@@ -141,7 +141,7 @@ class WsgiMiddleware(object):
         try:
             with profiler.Trace(self.name, info=info):
                 resp: Response = request.get_response(self.application)
-                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() if profiler.get() else "None"
+                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() if isinstance(profiler.get(), profiler._Profiler) else "None"
                 return resp
         finally:
             profiler.clean()
