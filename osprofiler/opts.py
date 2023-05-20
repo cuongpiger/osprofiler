@@ -158,7 +158,7 @@ Possible values:
 
 _enable_http_request_trace_opt = cfg.BoolOpt(
     "enable_http_request_trace",
-    default=True,
+    default=False,
     help="""
 Enable tracing of HTTP requests. Clients can specify the HMAC key in the request header.
     """
@@ -166,9 +166,10 @@ Enable tracing of HTTP requests. Clients can specify the HMAC key in the request
 
 _http_request_tracing_token = cfg.StrOpt(
     "http_request_tracing_token",
-    default="qaswedfr",
+    default="y1QZhT8HV56Y!6Q0n7BIuO6vM7NtN!iU4nuQ0$lKb0dL!Yz@MN",
     help="""
-    TODO
+Token used to authenticate HTTP requests for tracing.
+Clients can specify the X-Trace-Token key in the request header.
     """
 )
 
