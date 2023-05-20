@@ -14,9 +14,14 @@
 #    under the License.
 
 import webob.dec
+import logging
+
+from webob import Response, Request
+
 from osprofiler import _utils as utils
 from osprofiler import profiler
 from typing import Optional, List
+from oslo_config import cfg
 
 # Trace keys that are required or optional, any other
 # keys that are present will cause the trace to be rejected...
@@ -28,6 +33,12 @@ X_TRACE_INFO: str = "X-Trace-Info"
 
 #: Http header that will contain the traces data hmac (that will be validated).
 X_TRACE_HMAC: str = "X-Trace-HMAC"
+
+X_TRACE_TOKEN: str = "X-Trace-Token"
+
+X_TRACE_ID: str = "X-Trace-Id"
+
+LOG = logging.getLogger(__name__)
 
 
 def get_trace_id_headers():
@@ -75,12 +86,12 @@ class WsgiMiddleware(object):
                           limitation is essential, because it allows to profile OpenStack by only those who knows this
                           key which helps avoid DDOS.
         :param enabled: This middleware can be turned off fully if enabled is False.
-        :param kwargs: Other keyword arguments..
+        :param kwargs: Other keyword arguments.
         """
         self.application = application
         self.name: str = "wsgi"
         self.enabled: bool = enabled
-        self.hmac_keys = utils.split(hmac_keys or "")
+        self.hmac_keys = utils.split(hmac_keys or cfg.CONF.profiler.hmac_keys)
 
     @classmethod
     def factory(cls, global_conf, **local_conf):
@@ -100,7 +111,8 @@ class WsgiMiddleware(object):
         return True
 
     @webob.dec.wsgify
-    def __call__(self, request):
+    def __call__(self, request: Request):
+        LOG.debug(f"OSprofiler middleware is called with the request: {type(request)}")
         if (_ENABLED is not None and not _ENABLED
                 or _ENABLED is None and not self.enabled):
             return request.get_response(self.application)
@@ -109,9 +121,14 @@ class WsgiMiddleware(object):
                                          request.headers.get(X_TRACE_HMAC),
                                          _HMAC_KEYS or self.hmac_keys)
 
-        if not self._trace_is_valid(trace_info):
+        tracing_http = profiler.check_trace_http_requests(request.headers.get(X_TRACE_TOKEN))
+        if not self._trace_is_valid(trace_info) and not tracing_http:
             return request.get_response(self.application)
 
+        if trace_info is None:
+            trace_info = {
+                "hmac_key": self.hmac_keys[0],
+            }
         profiler.init(**trace_info)
         info = {
             "request": {
@@ -123,6 +140,8 @@ class WsgiMiddleware(object):
         }
         try:
             with profiler.Trace(self.name, info=info):
-                return request.get_response(self.application)
+                resp: Response = request.get_response(self.application)
+                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() if profiler.get() else "None"
+                return resp
         finally:
             profiler.clean()

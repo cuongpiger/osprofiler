@@ -158,9 +158,17 @@ Possible values:
 
 _enable_http_request_trace_opt = cfg.BoolOpt(
     "enable_http_request_trace",
-    default=False,
+    default=True,
     help="""
 Enable tracing of HTTP requests. Clients can specify the HMAC key in the request header.
+    """
+)
+
+_http_request_tracing_token = cfg.StrOpt(
+    "http_request_tracing_token",
+    default="qaswedfr",
+    help="""
+    TODO
     """
 )
 
@@ -174,7 +182,9 @@ _PROFILER_OPTS = [
     _es_scroll_size_opt,
     _socket_timeout_opt,
     _sentinel_service_name_opt,
-    _filter_error_trace
+    _filter_error_trace,
+    _enable_http_request_trace_opt,
+    _http_request_tracing_token
 ]
 
 cfg.CONF.register_opts(_PROFILER_OPTS, group=_profiler_opt_group)
