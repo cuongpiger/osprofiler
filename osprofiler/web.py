@@ -112,7 +112,6 @@ class WsgiMiddleware(object):
 
     @webob.dec.wsgify
     def __call__(self, request: Request):
-        LOG.debug(f"OSprofiler middleware is called with the request: {type(request)}")
         if (_ENABLED is not None and not _ENABLED
                 or _ENABLED is None and not self.enabled):
             return request.get_response(self.application)
@@ -141,7 +140,8 @@ class WsgiMiddleware(object):
         try:
             with profiler.Trace(self.name, info=info):
                 resp: Response = request.get_response(self.application)
-                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() if isinstance(profiler.get(), profiler._Profiler) else "None"
+                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() \
+                    if isinstance(profiler.get(), profiler._Profiler) else "None"
                 return resp
         finally:
             profiler.clean()

@@ -17,7 +17,6 @@ import collections
 import datetime
 import functools
 import inspect
-import time
 import socket
 import threading
 import logging
@@ -59,7 +58,6 @@ def init(hmac_key, base_id=None, parent_id=None):
     :param parent_id: Used to build tree of traces.
     :returns: Profiler instance
     """
-    print(f"DEBUG - run init function {round(time.time() * 1000)}")
     if get() is None:
         __local_ctx.profiler = _Profiler(hmac_key, base_id=base_id,
                                          parent_id=parent_id)
@@ -67,6 +65,12 @@ def init(hmac_key, base_id=None, parent_id=None):
 
 
 def check_trace_http_requests(trace_token: Optional[str]) -> bool:
+    """Check if the HTTP(s) request tracing is enabled.
+
+    :param trace_token: The trace token from the HTTP(s) request header
+
+    :returns: `True` if the HTTP(s) request tracing is enabled, otherwise `False`
+    """
     if not cfg.CONF.profiler.enable_http_request_trace:
         # From the config file, adminstrator disbled the HTTP(s) request tracing
         return False
@@ -382,7 +386,6 @@ class _Profiler(object):
         self.hmac_key = hmac_key
         if not base_id:
             base_id = str(uuidutils.generate_uuid())
-            print(f"DEBUG - Profiler base_id: {base_id} - {round(time.time() * 1000)}")
         self._trace_stack = collections.deque([base_id, parent_id or base_id])
         self._name = collections.deque()
         self._host = socket.gethostname()
@@ -442,7 +445,6 @@ class _Profiler(object):
 
         :param name: name of trace element (db-start, db-stop, wsgi-start, wsgi-stop, etc..)
         """
-        print(f"profiler notify {name}, {type(info)}")
         payload = {
             "name": name,
             "base_id": self.get_base_id(),
@@ -453,5 +455,4 @@ class _Profiler(object):
         if info:
             payload["info"] = info
 
-        print(f"DEBUG - Profiler notify: {payload} - {round(time.time() * 1000)}")
         notifier.notify(payload)

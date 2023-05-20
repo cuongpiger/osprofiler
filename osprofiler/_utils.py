@@ -17,7 +17,6 @@ import base64
 import hashlib
 import hmac
 import json
-import time
 import os
 import uuid
 import logging
@@ -77,7 +76,6 @@ def generate_hmac(data: str, hmac_key: str) -> str:
 
 
 def signed_pack(data, hmac_key):
-    print(f"DEBUG - data {data}: {round(time.time()*1000)}")
     """Pack and sign data with hmac_key."""
     raw_data = base64.urlsafe_b64encode(binary_encode(json.dumps(data)))
 
@@ -89,7 +87,6 @@ def signed_pack(data, hmac_key):
 
 
 def signed_unpack(data: Optional[str], hmac_data: Optional[str], hmac_keys: Optional[List[str]]):
-    print(f"DEBUG - run here with {data}, {hmac_data}, {hmac_keys} {round(time.time()*1000)}")
     """Unpack data and check that it was signed with hmac_key.
 
     :param data: json string that was singed_packed.
@@ -102,7 +99,6 @@ def signed_unpack(data: Optional[str], hmac_data: Optional[str], hmac_keys: Opti
     # [cuongdm]
     # For security reason, if there is no hmac_data or hmac_keys we don't trust data => return None.
     if not (hmac_keys and hmac_data):
-        print(f"DEBUG - not (hmac_keys and hmac_data) {round(time.time()*1000)}")
         return None
 
     # [cuongdm]
@@ -124,9 +120,8 @@ def signed_unpack(data: Optional[str], hmac_data: Optional[str], hmac_keys: Opti
                 try:
                     contents = json.loads(binary_decode(base64.urlsafe_b64decode(data)))
                     contents["hmac_key"] = hmac_key
-                    print(f"DEBUG - return contents {contents} {round(time.time()*1000)}")
                     return contents
-                except Exception:
+                except (Exception,):
                     return None
     return None
 

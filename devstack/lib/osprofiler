@@ -142,6 +142,8 @@ function configure_osprofiler() {
       iniset $conf profiler trace_sqlalchemy $OSPROFILER_TRACE_SQLALCHEMY
       iniset $conf profiler hmac_keys $OSPROFILER_HMAC_KEYS
       iniset $conf profiler connection_string $OSPROFILER_CONNECTION_STRING
+      iniset $conf profiler enable_http_request_trace $OSPROFILER_ENABLE_HTTP_REQUEST_TRACE
+      iniset $conf profiler http_request_tracing_token $OSPROFILER_HTTP_REQUEST_TRACING_TOKEN
     fi
   done
 
