@@ -78,7 +78,8 @@ def enable(hmac_keys: Optional[List[str]] = None):
 class WsgiMiddleware(object):
     """WSGI Middleware that enables tracing for an application."""
 
-    def __init__(self, application, hmac_keys: Optional[str] = None, enabled=False, **kwargs):
+    def __init__(self, application, hmac_keys: Optional[str] = None, enabled=False,
+                 enable_http_request_trace=False, http_request_tracing_token: Optional[str] = None, **kwargs):
         """Initialize middleware with api-paste.ini arguments.
 
         :param application: WSGI application, it is the app object from Flask, Django, Pecan, etc.
@@ -88,13 +89,26 @@ class WsgiMiddleware(object):
         :param enabled: This middleware can be turned off fully if enabled is False.
         :param kwargs: Other keyword arguments.
         """
+
         self.application = application
         self.name: str = "wsgi"
         self.enabled: bool = enabled
-        self.hmac_keys = utils.split(hmac_keys or cfg.CONF.profiler.hmac_keys)
+        self.hmac_keys = utils.split(hmac_keys or "")
+        self.enable_http_request_trace = enable_http_request_trace
+        self.http_request_tracing_token = http_request_tracing_token or ""
 
     @classmethod
     def factory(cls, global_conf, **local_conf):
+        """Factory method for paste.deploy."""
+
+        if "profiler" in cfg.CONF.list_all_sections():
+            profiler_conf = cfg.CONF.profiler
+            local_conf.update({
+                "enabled": profiler_conf.enabled,
+                "hmac_keys": profiler_conf.hmac_keys,
+                "enable_http_request_trace": profiler_conf.enable_http_request_trace,
+                "http_request_tracing_token": profiler_conf.http_request_tracing_token
+            })
         def filter_(app):
             return cls(app, **local_conf)
 
@@ -120,7 +134,9 @@ class WsgiMiddleware(object):
                                          request.headers.get(X_TRACE_HMAC),
                                          _HMAC_KEYS or self.hmac_keys)
 
-        tracing_http = profiler.check_trace_http_requests(request.headers.get(X_TRACE_TOKEN))
+        tracing_http = profiler.check_trace_http_requests(request.headers.get(X_TRACE_TOKEN),
+                                                          self.enable_http_request_trace,
+                                                          self.http_request_tracing_token)
         if not self._trace_is_valid(trace_info) and not tracing_http:
             return request.get_response(self.application)
 

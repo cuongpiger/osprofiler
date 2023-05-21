@@ -64,14 +64,16 @@ def init(hmac_key, base_id=None, parent_id=None):
     return __local_ctx.profiler
 
 
-def check_trace_http_requests(trace_token: Optional[str]) -> bool:
+def check_trace_http_requests(trace_token: Optional[str],
+                              enable_http_request_trace=False,
+                              http_request_tracing_token="") -> bool:
     """Check if the HTTP(s) request tracing is enabled.
 
-    :param trace_token: The trace token from the HTTP(s) request header
+    :param trace_token: The trace token from the HTTP(s) request header♥
 
     :returns: `True` if the HTTP(s) request tracing is enabled, otherwise `False`
     """
-    if not cfg.CONF.profiler.enable_http_request_trace:
+    if not enable_http_request_trace:
         # From the config file, adminstrator disbled the HTTP(s) request tracing
         return False
 
@@ -79,7 +81,7 @@ def check_trace_http_requests(trace_token: Optional[str]) -> bool:
         # The trace token is not provided
         return False
 
-    if trace_token != cfg.CONF.profiler.http_request_tracing_token:
+    if trace_token != http_request_tracing_token:
         # The trace token is not correct
         return False
 
