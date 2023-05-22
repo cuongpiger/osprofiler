@@ -20,7 +20,7 @@ import json
 import os
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 from oslo_utils import secretutils
 from oslo_utils import uuidutils
 
@@ -75,8 +75,16 @@ def generate_hmac(data: str, hmac_key: str) -> str:
     return h.hexdigest()
 
 
-def signed_pack(data, hmac_key):
-    """Pack and sign data with hmac_key."""
+def signed_pack(data: dict, hmac_key: str) -> Union[str, str]:
+    """Pack and sign data with hmac_key.
+
+    :param data: Including of 2 keys: base_id and parent_id, which are
+        - base_id: the trace id of the root trace
+        - parent_id: the trace id of the parent trace, if it is the root trace, parent_id equals to base_id
+    :param hmac_key: hmac_key to sign data
+
+    :returns: trace_info, hmac_data
+    """
     raw_data = base64.urlsafe_b64encode(binary_encode(json.dumps(data)))
 
     # NOTE(boris-42): Don't generate_hmac if there is no hmac_key, mostly

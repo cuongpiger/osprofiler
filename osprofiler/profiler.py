@@ -24,7 +24,6 @@ from oslo_utils import reflection
 from oslo_utils import uuidutils
 from osprofiler import _utils as utils
 from osprofiler import notifier
-from oslo_config import cfg
 from typing import Optional
 
 # NOTE(boris-42): Thread safe storage for profiler instances.
@@ -58,6 +57,8 @@ def init(hmac_key, base_id=None, parent_id=None):
     :param parent_id: Used to build tree of traces.
     :returns: Profiler instance
     """
+
+    # If the profiler instance is already inited, then create one
     if get() is None:
         __local_ctx.profiler = _Profiler(hmac_key, base_id=base_id,
                                          parent_id=parent_id)
@@ -69,7 +70,7 @@ def check_trace_http_requests(trace_token: Optional[str],
                               http_request_tracing_token="") -> bool:
     """Check if the HTTP(s) request tracing is enabled.
 
-    :param trace_token: The trace token from the HTTP(s) request header♥
+    :param trace_token: The trace token from the HTTP(s) request header
 
     :returns: `True` if the HTTP(s) request tracing is enabled, otherwise `False`
     """
@@ -387,6 +388,7 @@ class _Profiler(object):
     def __init__(self, hmac_key: str, base_id: Optional[str] = None, parent_id: Optional[str] = None):
         self.hmac_key = hmac_key
         if not base_id:
+            # If this is the root trace, generate a new base_id
             base_id = str(uuidutils.generate_uuid())
         self._trace_stack = collections.deque([base_id, parent_id or base_id])
         self._name = collections.deque()

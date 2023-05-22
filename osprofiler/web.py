@@ -109,12 +109,13 @@ class WsgiMiddleware(object):
                 "enable_http_request_trace": profiler_conf.enable_http_request_trace,
                 "http_request_tracing_token": profiler_conf.http_request_tracing_token
             })
+
         def filter_(app):
             return cls(app, **local_conf)
 
         return filter_
 
-    def _trace_is_valid(self, trace_info):
+    def _trace_is_valid(self, trace_info) -> bool:
         if not isinstance(trace_info, dict):
             return False
         trace_keys = set(trace_info.keys())
@@ -130,21 +131,32 @@ class WsgiMiddleware(object):
                 or _ENABLED is None and not self.enabled):
             return request.get_response(self.application)
 
+        # [cuongdm]
+        # Handle the request from:
+        # - Receive the request "straight" from CLI
+        # - Receive the request from other OpenStack services, such as Nova, Neutron,...
         trace_info = utils.signed_unpack(request.headers.get(X_TRACE_INFO),
                                          request.headers.get(X_TRACE_HMAC),
                                          _HMAC_KEYS or self.hmac_keys)
 
+        # [cuongdm]
+        # Handle the request from HTTP(s) requests, need to specify X-Trace-Token
         tracing_http = profiler.check_trace_http_requests(request.headers.get(X_TRACE_TOKEN),
                                                           self.enable_http_request_trace,
                                                           self.http_request_tracing_token)
+
+        # [cuongdm]
+        # If the request is not both from CLI and HTTP(s) requests, or not valid, then return the response
         if not self._trace_is_valid(trace_info) and not tracing_http:
             return request.get_response(self.application)
 
+        # [cuongdm]
+        # If the request is not from CLI, but from HTTP(s) requests, embed the trace info with HMAC key into the request
         if trace_info is None:
             trace_info = {
                 "hmac_key": self.hmac_keys[0],
             }
-        profiler.init(**trace_info)
+        profiler.init(**trace_info)  # prepare the profiler tracing
         info = {
             "request": {
                 "path": request.path,
