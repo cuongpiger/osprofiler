@@ -17,6 +17,7 @@ reasons (for example in isolating cross-project performance issues).
    integration
    collectors
    similar_projects
+   http_requests
 
 Release Notes
 =============

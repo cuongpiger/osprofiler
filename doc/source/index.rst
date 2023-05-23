@@ -25,4 +25,3 @@ reasons (for example in isolating cross-project performance issues).
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
