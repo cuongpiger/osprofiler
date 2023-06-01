@@ -15,14 +15,15 @@
 
 import datetime
 import logging
-from urllib import parse as urlparse
+
+import six.moves.urllib.parse as urlparse
 
 from osprofiler import _utils
 
 LOG = logging.getLogger(__name__)
 
 
-def get_driver(connection_string: str, *args, **kwargs):
+def get_driver(connection_string, *args, **kwargs):
     """Create driver's instance according to specified connection string"""
     # NOTE(ayelistratov) Backward compatibility with old Messaging notation
     # Remove after patching all OS services
@@ -31,15 +32,16 @@ def get_driver(connection_string: str, *args, **kwargs):
         connection_string += "://"
 
     parsed_connection = urlparse.urlparse(connection_string)
-    backend = parsed_connection.scheme
-    LOG.debug("String %s looks like a connection string, trying it.", connection_string)
+    LOG.debug("String %s looks like a connection string, trying it.",
+              connection_string)
 
+    backend = parsed_connection.scheme
     # NOTE(toabctl): To be able to use the connection_string for as sqlalchemy
     # connection string, transform the backend to the correct driver
     # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
-    if backend in ["mysql", "mysql+pymysql", "mysql+mysqldb", "postgresql", "postgresql+psycopg2"]:
+    if backend in ["mysql", "mysql+pymysql", "mysql+mysqldb",
+                   "postgresql", "postgresql+psycopg2"]:
         backend = "sqlalchemy"
-
     for driver in _utils.itersubclasses(Driver):
         if backend == driver.get_name():
             return driver(connection_string, *args, **kwargs)
@@ -59,8 +61,9 @@ class Driver(object):
 
     default_trace_fields = {"base_id", "timestamp"}
 
-    def __init__(self, connection_str, project=None, service=None, host=None, **kwargs):
-        self.connection_str: str = connection_str
+    def __init__(self, connection_str, project=None, service=None, host=None,
+                 **kwargs):
+        self.connection_str = connection_str
         self.project = project
         self.service = service
         self.host = host
@@ -85,16 +88,19 @@ class Driver(object):
         :param info:  Contains information about trace element.
                       In payload dict there are always 3 ids:
                       "base_id" - uuid that is common for all notifications
-                      related to one trace. Used to simplify retrieving of all
-                      trace elements from the backend.
+                                  related to one trace. Used to simplify
+                                  retrieving of all trace elements from
+                                  the backend.
                       "parent_id" - uuid of parent element in trace
                       "trace_id" - uuid of current element in trace
+
                       With parent_id and trace_id it's quite simple to build
                       tree of trace elements, which simplify analyze of trace.
+
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-            self.get_name()))
+                                      self.get_name()))
 
     def get_report(self, base_id):
         """Forms and returns report composed from the stored notifications.
@@ -103,7 +109,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-            self.get_name()))
+                                      self.get_name()))
 
     @classmethod
     def get_name(cls):
@@ -114,13 +120,13 @@ class Driver(object):
         """Query all traces from the storage.
 
         :param fields: Set of trace fields to return. Defaults to 'base_id'
-                       and 'timestamp'
-        :returns: List of traces, where each trace is a dictionary containing
-                  at least `base_id` and `timestamp`.
+               and 'timestamp'
+        :return List of traces, where each trace is a dictionary containing
+                at least `base_id` and `timestamp`.
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-            self.get_name()))
+                                      self.get_name()))
 
     def list_error_traces(self):
         """Query all error traces from the storage.
@@ -130,7 +136,7 @@ class Driver(object):
         """
         raise NotImplementedError("{0}: This method is either not supported "
                                   "or has to be overridden".format(
-            self.get_name()))
+                                      self.get_name()))
 
     @staticmethod
     def _build_tree(nodes):
@@ -222,8 +228,8 @@ class Driver(object):
         def msec(dt):
             # NOTE(boris-42): Unfortunately this is the simplest way that works
             # in py26 and py27
-            microsec = (dt.microseconds + (dt.seconds + dt.days * 24 * 3600)
-                        * 1e6)
+            microsec = (dt.microseconds + (dt.seconds + dt.days * 24 * 3600) *
+                        1e6)
             return int(microsec / 1000.0)
 
         stats = {}
@@ -239,8 +245,8 @@ class Driver(object):
 
             op_type = r["info"]["name"]
             op_started = msec(r["info"]["started"] - self.started_at)
-            op_finished = msec(r["info"]["finished"]
-                               - self.started_at)
+            op_finished = msec(r["info"]["finished"] -
+                               self.started_at)
             duration = op_finished - op_started
 
             r["info"]["started"] = op_started
@@ -250,7 +256,7 @@ class Driver(object):
                 stats[op_type] = {
                     "count": 1,
                     "duration": duration
-                }
+                    }
             else:
                 stats[op_type]["count"] += 1
                 stats[op_type]["duration"] += duration
@@ -259,9 +265,8 @@ class Driver(object):
             "info": {
                 "name": "total",
                 "started": 0,
-                "finished": msec(
-                    self.finished_at - self.started_at
-                ) if self.started_at else None,
+                "finished": msec(self.finished_at -
+                                 self.started_at) if self.started_at else None,
                 "last_trace_started": msec(
                     self.last_started_at - self.started_at
                 ) if self.started_at else None

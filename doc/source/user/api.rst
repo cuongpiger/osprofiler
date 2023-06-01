@@ -39,7 +39,8 @@ Five ways to add a new trace point.
         def _traced_only_if_trace_private_true(self):
              pass
 
-    class RpcManagerClass(object, metaclass=profiler.TracedMeta):
+    @six.add_metaclass(profiler.TracedMeta)
+    class RpcManagerClass(object):
         __trace_args__ = {'name': 'rpc',
                           'info': None,
                           'hide_args': False,
@@ -76,14 +77,14 @@ How profiler works?
   .. code-block:: python
 
         profiler.start("parent_point") # trace_stack.push(<new_uuid>)
-                                       # send to collector -> trace_stack[1]
+                                       # send to collector -> trace_stack[-2:]
 
-        profiler.start("child_point") # trace_stack.push(<new_uuid>)
-                                       # send to collector -> trace_stack[2]
-        profiler.stop()                # send to collector -> trace_stack[2]
+        profiler.start("parent_point") # trace_stack.push(<new_uuid>)
+                                       # send to collector -> trace_stack[-2:]
+        profiler.stop()                # send to collector -> trace_stack[-2:]
                                        # trace_stack.pop()
 
-        profiler.stop()                # send to collector -> trace_stack[1]
+        profiler.stop()                # send to collector -> trace_stack[-2:]
                                        # trace_stack.pop()
 
   It's simple to build a tree of nested trace points, having

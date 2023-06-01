@@ -14,11 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from urllib import parse as parser
-
 from debtcollector import removals
+
 from oslo_config import cfg
 from oslo_serialization import jsonutils
+import six.moves.urllib.parse as parser
 
 from osprofiler.drivers import base
 from osprofiler import exc
@@ -37,16 +37,16 @@ class Redis(base.Driver):
                                     service=service, host=host,
                                     conf=conf, **kwargs)
         try:
-            from redis import Redis as _Redis
+            from redis import StrictRedis
         except ImportError:
             raise exc.CommandError(
-                "To use OSProfiler with Redis driver, "
-                "please install `redis` library. "
-                "To install with pip:\n `pip install redis`.")
+                "To use this command, you should install "
+                "'redis' manually. Use command:\n "
+                "'pip install redis'.")
 
         # only connection over network is supported with schema
         # redis://[:password]@host[:port][/db]
-        self.db = _Redis.from_url(self.connection_str)
+        self.db = StrictRedis.from_url(self.connection_str)
         self.namespace_opt = "osprofiler_opt:"
         self.namespace = "osprofiler:"  # legacy
         self.namespace_error = "osprofiler_error:"
@@ -61,12 +61,15 @@ class Redis(base.Driver):
         :param info:  Contains information about trace element.
                       In payload dict there are always 3 ids:
                       "base_id" - uuid that is common for all notifications
-                      related to one trace. Used to simplify retrieving of all
-                      trace elements from Redis.
+                                  related to one trace. Used to simplify
+                                  retrieving of all trace elements from
+                                  Redis.
                       "parent_id" - uuid of parent element in trace
                       "trace_id" - uuid of current element in trace
+
                       With parent_id and trace_id it's quite simple to build
                       tree of trace elements, which simplify analyze of trace.
+
         """
         data = info.copy()
         data["project"] = self.project
@@ -91,9 +94,9 @@ class Redis(base.Driver):
         """Query all traces from the storage.
 
         :param fields: Set of trace fields to return. Defaults to 'base_id'
-                       and 'timestamp'
-        :returns: List of traces, where each trace is a dictionary containing
-                  at least `base_id` and `timestamp`.
+               and 'timestamp'
+        :return List of traces, where each trace is a dictionary containing
+                at least `base_id` and `timestamp`.
         """
         fields = set(fields or self.default_trace_fields)
 

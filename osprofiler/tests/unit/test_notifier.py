@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from unittest import mock
+import mock
 
 from osprofiler import notifier
 from osprofiler.tests import test
@@ -23,7 +23,6 @@ class NotifierTestCase(test.TestCase):
 
     def tearDown(self):
         notifier.set(notifier._noop_notifier)  # restore defaults
-        notifier.clear_notifier_cache()
         super(NotifierTestCase, self).tearDown()
 
     def test_set(self):
@@ -50,11 +49,3 @@ class NotifierTestCase(test.TestCase):
         result = notifier.create("test", 10, b=20)
         mock_factory.assert_called_once_with("test", 10, b=20)
         self.assertEqual(mock_factory.return_value.notify, result)
-
-    @mock.patch("osprofiler.notifier.base.get_driver")
-    def test_create_driver_init_failure(self, mock_get_driver):
-        mock_get_driver.side_effect = Exception()
-
-        result = notifier.create("test", 10, b=20)
-        mock_get_driver.assert_called_once_with("test", 10, b=20)
-        self.assertEqual(notifier._noop_notifier, result)

@@ -28,8 +28,6 @@ import functools
 import re
 import tokenize
 
-from hacking import core
-
 re_assert_true_instance = re.compile(
     r"(.)*assertTrue\(isinstance\((\w|\.|\'|\"|\[|\])+, "
     r"(\w|\.|\'|\"|\[|\])+\)\)")
@@ -65,7 +63,6 @@ re_raises = re.compile(
     r"\s:raise[^s] *.*$|\s:raises *:.*$|\s:raises *[^:]+$")
 
 
-@core.flake8ext
 def skip_ignored_lines(func):
 
     @functools.wraps(func)
@@ -73,10 +70,7 @@ def skip_ignored_lines(func):
         line = logical_line.strip()
         if not line or line.startswith("#") or line.endswith("# noqa"):
             return
-        try:
-            yield next(func(logical_line, filename))
-        except StopIteration:
-            return
+        yield next(func(logical_line, filename))
 
     return wrapper
 
@@ -92,7 +86,6 @@ def _parse_assert_mock_str(line):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def check_assert_methods_from_mock(logical_line, filename):
     """Ensure that ``assert_*`` methods from ``mock`` library is used correctly
 
@@ -139,7 +132,6 @@ def check_assert_methods_from_mock(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def assert_true_instance(logical_line, filename):
     """Check for assertTrue(isinstance(a, b)) sentences
 
@@ -151,7 +143,6 @@ def assert_true_instance(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def assert_equal_type(logical_line, filename):
     """Check for assertEqual(type(A), B) sentences
 
@@ -163,14 +154,13 @@ def assert_equal_type(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def assert_equal_none(logical_line, filename):
     """Check for assertEqual(A, None) or assertEqual(None, A) sentences
 
     N322
     """
-    res = (re_assert_equal_start_with_none.search(logical_line)
-           or re_assert_equal_end_with_none.search(logical_line))
+    res = (re_assert_equal_start_with_none.search(logical_line) or
+           re_assert_equal_end_with_none.search(logical_line))
     if res:
         yield (0, "N322 assertEqual(A, None) or assertEqual(None, A) "
                   "sentences not allowed, you should use assertIsNone(A) "
@@ -178,7 +168,6 @@ def assert_equal_none(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def assert_true_or_false_with_in(logical_line, filename):
     """Check assertTrue/False(A in/not in B) with collection contents
 
@@ -188,9 +177,8 @@ def assert_true_or_false_with_in(logical_line, filename):
 
     N323
     """
-    res = (re_assert_true_false_with_in_or_not_in.search(logical_line)
-           or re_assert_true_false_with_in_or_not_in_spaces.search(
-               logical_line))
+    res = (re_assert_true_false_with_in_or_not_in.search(logical_line) or
+           re_assert_true_false_with_in_or_not_in_spaces.search(logical_line))
     if res:
         yield (0, "N323 assertTrue/assertFalse(A in/not in B)sentences not "
                   "allowed, you should use assertIn(A, B) or assertNotIn(A, B)"
@@ -198,7 +186,6 @@ def assert_true_or_false_with_in(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def assert_equal_in(logical_line, filename):
     """Check assertEqual(A in/not in B, True/False) with collection contents
 
@@ -208,8 +195,8 @@ def assert_equal_in(logical_line, filename):
 
     N324
     """
-    res = (re_assert_equal_in_end_with_true_or_false.search(logical_line)
-           or re_assert_equal_in_start_with_true_or_false.search(logical_line))
+    res = (re_assert_equal_in_end_with_true_or_false.search(logical_line) or
+           re_assert_equal_in_start_with_true_or_false.search(logical_line))
     if res:
         yield (0, "N324: Use assertIn/NotIn(A, B) rather than "
                   "assertEqual(A in/not in B, True/False) when checking "
@@ -217,7 +204,6 @@ def assert_equal_in(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def check_quotes(logical_line, filename):
     """Check that single quotation marks are not used
 
@@ -230,8 +216,8 @@ def check_quotes(logical_line, filename):
 
     check_tripple = (
         lambda line, i, char: (
-            i + 2 < len(line)
-            and (char == line[i] == line[i + 1] == line[i + 2])
+            i + 2 < len(line) and
+            (char == line[i] == line[i + 1] == line[i + 2])
         )
     )
 
@@ -271,7 +257,6 @@ def check_quotes(logical_line, filename):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def check_no_constructor_data_struct(logical_line, filename):
     """Check that data structs (lists, dicts) are declared using literals
 
@@ -286,7 +271,6 @@ def check_no_constructor_data_struct(logical_line, filename):
         yield (0, "N351 Remove list() construct and use literal []")
 
 
-@core.flake8ext
 def check_dict_formatting_in_string(logical_line, tokens):
     """Check that strings do not use dict-formatting with a single replacement
 
@@ -295,9 +279,9 @@ def check_dict_formatting_in_string(logical_line, tokens):
     # NOTE(stpierre): Can't use @skip_ignored_lines here because it's
     # a stupid decorator that only works on functions that take
     # (logical_line, filename) as arguments.
-    if (not logical_line
-        or logical_line.startswith("#")
-        or logical_line.endswith("# noqa")):
+    if (not logical_line or
+            logical_line.startswith("#") or
+            logical_line.endswith("# noqa")):
         return
 
     current_string = ""
@@ -338,7 +322,7 @@ def check_dict_formatting_in_string(logical_line, tokens):
                     format_keys.add(match.group(1))
                 if len(format_keys) == 1:
                     yield (0,
-                           "N352 Do not use mapping key string formatting "
+                           "N353 Do not use mapping key string formatting "
                            "with a single key")
             if text != ")":
                 # NOTE(stpierre): You can have a parenthesized string
@@ -355,7 +339,6 @@ def check_dict_formatting_in_string(logical_line, tokens):
 
 
 @skip_ignored_lines
-@core.flake8ext
 def check_using_unicode(logical_line, filename):
     """Check crosspython unicode usage
 
@@ -364,10 +347,9 @@ def check_using_unicode(logical_line, filename):
 
     if re.search(r"\bunicode\(", logical_line):
         yield (0, "N353 'unicode' function is absent in python3. Please "
-                  "use 'str' instead.")
+                  "use 'six.text_type' instead.")
 
 
-@core.flake8ext
 def check_raises(physical_line, filename):
     """Check raises usage
 
@@ -380,3 +362,17 @@ def check_raises(physical_line, filename):
         if re_raises.search(physical_line):
             return (0, "N354 ':Please use ':raises Exception: conditions' "
                        "in docstrings.")
+
+
+def factory(register):
+    register(check_assert_methods_from_mock)
+    register(assert_true_instance)
+    register(assert_equal_type)
+    register(assert_equal_none)
+    register(assert_true_or_false_with_in)
+    register(assert_equal_in)
+    register(check_quotes)
+    register(check_no_constructor_data_struct)
+    register(check_dict_formatting_in_string)
+    register(check_using_unicode)
+    register(check_raises)

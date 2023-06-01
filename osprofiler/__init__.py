@@ -13,12 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-try:
-    # For Python 3.8 and later
-    import importlib.metadata as importlib_metadata
-except ImportError:
-    # For everyone else
-    import importlib_metadata
+import pkg_resources
 
-# __version__ = importlib_metadata.version("osprofiler")
-__version__ = "3.4.4"  # hard-coded version number to avoid dependency on importlib_metadata
+__version__ = pkg_resources.get_distribution("osprofiler").version

@@ -15,10 +15,11 @@
 
 import json
 import os
+import prettytable
+import six
 
 from oslo_utils import encodeutils
 from oslo_utils import uuidutils
-import prettytable
 
 from osprofiler.cmd import cliutils
 from osprofiler.drivers import base
@@ -187,4 +188,7 @@ class TraceCommands(BaseCommand):
         for trace in traces:
             row = [trace[field] for field in fields]
             pretty_table.add_row(row)
-        print(encodeutils.safe_encode(pretty_table.get_string()).decode())
+        if six.PY3:
+            print(encodeutils.safe_encode(pretty_table.get_string()).decode())
+        else:
+            print(encodeutils.safe_encode(pretty_table.get_string()))

@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from unittest import mock
+import mock
 
 from osprofiler.drivers.mongodb import MongoDB
 from osprofiler.tests import test
@@ -143,7 +143,7 @@ class MongoDBParserTestCase(test.TestCase):
                     "db": {
                         "params": {
 
-                        },
+                            },
                         "statement": "SELECT 1"
                     },
                     "service": None
@@ -305,7 +305,8 @@ class MongoDBParserTestCase(test.TestCase):
                 "finished": 88,
                 "name": "total",
                 "started": 0,
-                "last_trace_started": 88},
+                "last_trace_started": 88
+            },
             "stats": {"db": {"count": 1, "duration": 20},
                       "wsgi": {"count": 3, "duration": 0}}}
 

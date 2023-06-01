@@ -17,8 +17,9 @@ import collections
 import copy
 import datetime
 import re
-from unittest import mock
 
+import mock
+import six
 
 from osprofiler import profiler
 from osprofiler.tests import test
@@ -461,6 +462,7 @@ class TraceClsDecoratorTestCase(test.TestCase):
                 #                  - and FakeTraceStatic.method4 in PY3
                 "name":
                     "osprofiler.tests.unit.test_profiler"
+                    ".method4" if six.PY2 else
                     "osprofiler.tests.unit.test_profiler.FakeTraceStatic"
                     ".method4",
                 "args": str((25,)),
@@ -488,7 +490,8 @@ class TraceClsDecoratorTestCase(test.TestCase):
         self.assertFalse(mock_stop.called)
 
 
-class FakeTraceWithMetaclassBase(object, metaclass=profiler.TracedMeta):
+@six.add_metaclass(profiler.TracedMeta)
+class FakeTraceWithMetaclassBase(object):
     __trace_args__ = {"name": "rpc",
                       "info": {"a": 10}}
 
@@ -531,8 +534,8 @@ class TraceWithMetaclassTestCase(test.TestCase):
 
     def test_no_name_exception(self):
         def define_class_with_no_name():
-            class FakeTraceWithMetaclassNoName(FakeTracedCls,
-                                               metaclass=profiler.TracedMeta):
+            @six.add_metaclass(profiler.TracedMeta)
+            class FakeTraceWithMetaclassNoName(FakeTracedCls):
                 pass
         self.assertRaises(TypeError, define_class_with_no_name, 1)
 

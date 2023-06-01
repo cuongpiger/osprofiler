@@ -1,11 +1,15 @@
-===================================================
- OSProfiler -- Library for cross-project profiling
-===================================================
+========================
+Team and repository tags
+========================
 
 .. image:: https://governance.openstack.org/tc/badges/osprofiler.svg
     :target: https://governance.openstack.org/tc/reference/tags/index.html
 
 .. Change things from this point on
+
+===========================================================
+ OSProfiler -- Library for cross-project profiling library
+===========================================================
 
 .. image:: https://img.shields.io/pypi/v/osprofiler.svg
     :target: https://pypi.org/project/osprofiler/

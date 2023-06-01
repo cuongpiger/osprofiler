@@ -13,32 +13,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
 import webob.dec
-import logging
-
-from webob import Response, Request
 
 from osprofiler import _utils as utils
 from osprofiler import profiler
-from typing import Optional, List
-from oslo_config import cfg
+
 
 # Trace keys that are required or optional, any other
 # keys that are present will cause the trace to be rejected...
 _REQUIRED_KEYS = ("base_id", "hmac_key")
 _OPTIONAL_KEYS = ("parent_id",)
 
-#: Http header that will contain the needed traces' data.
-X_TRACE_INFO: str = "X-Trace-Info"
+#: Http header that will contain the needed traces data.
+X_TRACE_INFO = "X-Trace-Info"
 
 #: Http header that will contain the traces data hmac (that will be validated).
-X_TRACE_HMAC: str = "X-Trace-HMAC"
-
-X_TRACE_TOKEN: str = "X-Trace-Token"
-
-X_TRACE_ID: str = "X-Trace-Id"
-
-LOG = logging.getLogger(__name__)
+X_TRACE_HMAC = "X-Trace-HMAC"
 
 
 def get_trace_id_headers():
@@ -54,8 +45,8 @@ def get_trace_id_headers():
     return {}
 
 
-_ENABLED: Optional[bool] = None
-_HMAC_KEYS: Optional[List[str]] = None
+_ENABLED = None
+_HMAC_KEYS = None
 
 
 def disable():
@@ -68,8 +59,8 @@ def disable():
     _ENABLED = False
 
 
-def enable(hmac_keys: Optional[List[str]] = None):
-    """Enable OSprofiler middleware."""
+def enable(hmac_keys=None):
+    """Enable middleware."""
     global _ENABLED, _HMAC_KEYS
     _ENABLED = True
     _HMAC_KEYS = utils.split(hmac_keys or "")
@@ -78,47 +69,36 @@ def enable(hmac_keys: Optional[List[str]] = None):
 class WsgiMiddleware(object):
     """WSGI Middleware that enables tracing for an application."""
 
-    def __init__(self, application, hmac_keys: Optional[str] = None, enabled=False,
-                 enable_http_request_trace=False, http_request_tracing_token: Optional[str] = None, **kwargs):
+    def __init__(self, application, hmac_keys=None, enabled=False, **kwargs):
         """Initialize middleware with api-paste.ini arguments.
 
-        :param application: WSGI application, it is the app object from Flask, Django, Pecan, etc.
-        :param hmac_keys: Only trace header that was signed with one of these hmac keys will be processed. This
-                          limitation is essential, because it allows to profile OpenStack by only those who knows this
-                          key which helps avoid DDOS.
-        :param enabled: This middleware can be turned off fully if enabled is False.
-        :param kwargs: Other keyword arguments.
+        :application: wsgi app
+        :hmac_keys: Only trace header that was signed with one of these
+                    hmac keys will be processed. This limitation is
+                    essential, because it allows to profile OpenStack
+                    by only those who knows this key which helps
+                    avoid DDOS.
+        :enabled: This middleware can be turned off fully if enabled is False.
+        :kwargs: Other keyword arguments.
+                 NOTE(tovin07): Currently, this `kwargs` is not used at all.
+                 It's here to avoid some extra keyword arguments in local_conf
+                 that cause `__init__() got an unexpected keyword argument`.
         """
-
         self.application = application
-        self.name: str = "wsgi"
-        self.enabled: bool = enabled
+        self.name = "wsgi"
+        self.enabled = enabled
         self.hmac_keys = utils.split(hmac_keys or "")
-        self.enable_http_request_trace = enable_http_request_trace
-        self.http_request_tracing_token = http_request_tracing_token or ""
 
     @classmethod
     def factory(cls, global_conf, **local_conf):
-        """Factory method for paste.deploy."""
-
-        if "profiler" in cfg.CONF.list_all_sections():
-            profiler_conf = cfg.CONF.profiler
-            local_conf.update({
-                "enabled": profiler_conf.enabled,
-                "hmac_keys": profiler_conf.hmac_keys,
-                "enable_http_request_trace": profiler_conf.enable_http_request_trace,
-                "http_request_tracing_token": profiler_conf.http_request_tracing_token
-            })
-
         def filter_(app):
             return cls(app, **local_conf)
-
         return filter_
 
-    def _trace_is_valid(self, trace_info) -> bool:
+    def _trace_is_valid(self, trace_info):
         if not isinstance(trace_info, dict):
             return False
-        trace_keys = set(trace_info.keys())
+        trace_keys = set(six.iterkeys(trace_info))
         if not all(k in trace_keys for k in _REQUIRED_KEYS):
             return False
         if trace_keys.difference(_REQUIRED_KEYS + _OPTIONAL_KEYS):
@@ -126,37 +106,19 @@ class WsgiMiddleware(object):
         return True
 
     @webob.dec.wsgify
-    def __call__(self, request: Request):
-        if (_ENABLED is not None and not _ENABLED
-                or _ENABLED is None and not self.enabled):
+    def __call__(self, request):
+        if (_ENABLED is not None and not _ENABLED or
+                _ENABLED is None and not self.enabled):
             return request.get_response(self.application)
 
-        # [cuongdm]
-        # Handle the request from:
-        # - Receive the request "straight" from CLI
-        # - Receive the request from other OpenStack services, such as Nova, Neutron,...
         trace_info = utils.signed_unpack(request.headers.get(X_TRACE_INFO),
                                          request.headers.get(X_TRACE_HMAC),
                                          _HMAC_KEYS or self.hmac_keys)
 
-        # [cuongdm]
-        # Handle the request from HTTP(s) requests, need to specify X-Trace-Token
-        tracing_http = profiler.check_trace_http_requests(request.headers.get(X_TRACE_TOKEN),
-                                                          self.enable_http_request_trace,
-                                                          self.http_request_tracing_token)
-
-        # [cuongdm]
-        # If the request is not both from CLI and HTTP(s) requests, or not valid, then return the response
-        if not self._trace_is_valid(trace_info) and not tracing_http:
+        if not self._trace_is_valid(trace_info):
             return request.get_response(self.application)
 
-        # [cuongdm]
-        # If the request is not from CLI, but from HTTP(s) requests, embed the trace info with HMAC key into the request
-        if trace_info is None:
-            trace_info = {
-                "hmac_key": self.hmac_keys[0],
-            }
-        profiler.init(**trace_info)  # prepare the profiler tracing
+        profiler.init(**trace_info)
         info = {
             "request": {
                 "path": request.path,
@@ -167,9 +129,6 @@ class WsgiMiddleware(object):
         }
         try:
             with profiler.Trace(self.name, info=info):
-                resp: Response = request.get_response(self.application)
-                resp.headers[X_TRACE_ID] = profiler.get().get_base_id() \
-                    if isinstance(profiler.get(), profiler._Profiler) else "None"
-                return resp
+                return request.get_response(self.application)
         finally:
             profiler.clean()

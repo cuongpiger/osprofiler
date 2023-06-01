@@ -67,7 +67,6 @@ Possible values:
 _hmac_keys_opt = cfg.StrOpt(
     "hmac_keys",
     default="SECRET_KEY",
-    secret=True,
     help="""
 Secret key(s) to use for encrypting context data for performance profiling.
 
@@ -156,23 +155,6 @@ Possible values:
 * False: Disable the filter.
 """)
 
-_enable_http_request_trace_opt = cfg.BoolOpt(
-    "enable_http_request_trace",
-    default=False,
-    help="""
-Enable tracing of HTTP requests. Clients can specify the HMAC key in the request header.
-    """
-)
-
-_http_request_tracing_token = cfg.StrOpt(
-    "http_request_tracing_token",
-    default="",
-    help="""
-Token used to authenticate HTTP requests for tracing.
-Clients can specify the X-Trace-Token key in the request header.
-    """
-)
-
 _PROFILER_OPTS = [
     _enabled_opt,
     _trace_sqlalchemy_opt,
@@ -183,36 +165,10 @@ _PROFILER_OPTS = [
     _es_scroll_size_opt,
     _socket_timeout_opt,
     _sentinel_service_name_opt,
-    _filter_error_trace,
-    _enable_http_request_trace_opt,
-    _http_request_tracing_token
+    _filter_error_trace
 ]
 
 cfg.CONF.register_opts(_PROFILER_OPTS, group=_profiler_opt_group)
-
-_jaegerprofiler_opt_group = cfg.OptGroup(
-    "profiler_jaeger",
-    title="Jaeger's profiler driver related options")
-
-_service_name_prefix = cfg.StrOpt(
-    "service_name_prefix",
-    help="""
-Set service name prefix to Jaeger service name.
-""")
-
-_process_tags = cfg.DictOpt(
-    "process_tags",
-    default={},
-    help="""
-Set process tracer tags.
-""")
-
-_JAEGER_OPTS = [
-    _service_name_prefix,
-    _process_tags
-]
-
-cfg.CONF.register_opts(_JAEGER_OPTS, group=_jaegerprofiler_opt_group)
 
 
 def set_defaults(conf, enabled=None, trace_sqlalchemy=None, hmac_keys=None,
@@ -283,5 +239,4 @@ def disable_web_trace(conf=None):
 
 
 def list_opts():
-    return [(_profiler_opt_group.name, _PROFILER_OPTS),
-            (_jaegerprofiler_opt_group, _JAEGER_OPTS)]
+    return [(_profiler_opt_group.name, _PROFILER_OPTS)]

@@ -28,9 +28,9 @@ class MongoDB(base.Driver):
             from pymongo import MongoClient
         except ImportError:
             raise exc.CommandError(
-                "To use OSProfiler with MongoDB driver, "
-                "please install `pymongo` library. "
-                "To install with pip:\n `pip install pymongo`.")
+                "To use this command, you should install "
+                "'pymongo' manually. Use command:\n "
+                "'pip install pymongo'.")
 
         client = MongoClient(self.connection_str, connect=False)
         self.db = client[db_name]
@@ -45,12 +45,15 @@ class MongoDB(base.Driver):
         :param info:  Contains information about trace element.
                       In payload dict there are always 3 ids:
                       "base_id" - uuid that is common for all notifications
-                      related to one trace. Used to simplify retrieving of all
-                      trace elements from MongoDB.
+                                  related to one trace. Used to simplify
+                                  retrieving of all trace elements from
+                                  MongoDB.
                       "parent_id" - uuid of parent element in trace
                       "trace_id" - uuid of current element in trace
+
                       With parent_id and trace_id it's quite simple to build
                       tree of trace elements, which simplify analyze of trace.
+
         """
         data = info.copy()
         data["project"] = self.project
@@ -73,9 +76,9 @@ class MongoDB(base.Driver):
         """Query all traces from the storage.
 
         :param fields: Set of trace fields to return. Defaults to 'base_id'
-                       and 'timestamp'
-        :returns: List of traces, where each trace is a dictionary containing
-                  at least `base_id` and `timestamp`.
+               and 'timestamp'
+        :return List of traces, where each trace is a dictionary containing
+                at least `base_id` and `timestamp`.
         """
         fields = set(fields or self.default_trace_fields)
         ids = self.db.profiler.find({}).distinct("base_id")

@@ -17,19 +17,19 @@ import collections
 import datetime
 import functools
 import inspect
+import six
 import socket
 import threading
-import logging
+
 from oslo_utils import reflection
 from oslo_utils import uuidutils
+
 from osprofiler import _utils as utils
 from osprofiler import notifier
-from typing import Optional
+
 
 # NOTE(boris-42): Thread safe storage for profiler instances.
 __local_ctx = threading.local()
-
-LOG = logging.getLogger(__name__)
 
 
 def clean():
@@ -57,36 +57,10 @@ def init(hmac_key, base_id=None, parent_id=None):
     :param parent_id: Used to build tree of traces.
     :returns: Profiler instance
     """
-
-    # If the profiler instance is already inited, then create one
     if get() is None:
         __local_ctx.profiler = _Profiler(hmac_key, base_id=base_id,
                                          parent_id=parent_id)
     return __local_ctx.profiler
-
-
-def check_trace_http_requests(trace_token: Optional[str],
-                              enable_http_request_trace=False,
-                              http_request_tracing_token="") -> bool:
-    """Check if the HTTP(s) request tracing is enabled.
-
-    :param trace_token: The trace token from the HTTP(s) request header
-
-    :returns: `True` if the HTTP(s) request tracing is enabled, otherwise `False`
-    """
-    if not enable_http_request_trace:
-        # From the config file, adminstrator disbled the HTTP(s) request tracing
-        return False
-
-    if not isinstance(trace_token, str):
-        # The trace token is not provided
-        return False
-
-    if trace_token != http_request_tracing_token:
-        # The trace token is not correct
-        return False
-
-    return True
 
 
 def get():
@@ -187,7 +161,7 @@ def trace(name, info=None, hide_args=False, hide_result=True,
             except Exception as ex:
                 stop_info = {
                     "etype": reflection.get_class_name(ex),
-                    "message": str(ex)
+                    "message": six.text_type(ex)
                 }
                 raise
             else:
@@ -300,7 +274,8 @@ class TracedMeta(type):
 
     Possible usage:
 
-    >>>  class RpcManagerClass(object, metaclass=profiler.TracedMeta):
+    >>>  @six.add_metaclass(profiler.TracedMeta)
+    >>>  class RpcManagerClass(object):
     >>>      __trace_args__ = {'name': 'rpc',
     >>>                        'info': None,
     >>>                        'hide_args': False,
@@ -318,7 +293,6 @@ class TracedMeta(type):
     mandatory key included - "name", that will define name of action to be
     traced - E.g. wsgi, rpc, db, etc...
     """
-
     def __init__(cls, cls_name, bases, attrs):
         super(TracedMeta, cls).__init__(cls_name, bases, attrs)
 
@@ -332,8 +306,8 @@ class TracedMeta(type):
 
         traceable_attrs = []
         for attr_name, attr_value in attrs.items():
-            if not (inspect.ismethod(attr_value)
-                    or inspect.isfunction(attr_value)):
+            if not (inspect.ismethod(attr_value) or
+                    inspect.isfunction(attr_value)):
                 continue
             if attr_name.startswith("__"):
                 continue
@@ -385,10 +359,9 @@ class Trace(object):
 
 class _Profiler(object):
 
-    def __init__(self, hmac_key: str, base_id: Optional[str] = None, parent_id: Optional[str] = None):
+    def __init__(self, hmac_key, base_id=None, parent_id=None):
         self.hmac_key = hmac_key
         if not base_id:
-            # If this is the root trace, generate a new base_id
             base_id = str(uuidutils.generate_uuid())
         self._trace_stack = collections.deque([base_id, parent_id or base_id])
         self._name = collections.deque()
@@ -418,24 +391,30 @@ class _Profiler(object):
         """Returns current trace element id."""
         return self._trace_stack[-1]
 
-    def start(self, name: str, info=None):
-        """Start new event. Adds new trace_id to trace stack and sends notification to collector. With "info" and 3 ids:
-            + base_id - to be able to retrieve all trace elements by one query
-            + parent_id - to build tree of events (not just a list)
-            + trace_id - current event id.
+    def start(self, name, info=None):
+        """Start new event.
+
+        Adds new trace_id to trace stack and sends notification
+        to collector. With "info" and 3 ids:
+        base_id - to be able to retrieve all trace elements by one query
+        parent_id - to build tree of events (not just a list)
+        trace_id - current event id.
 
         :param name: name of trace element (db, wsgi, rpc, etc..)
-        :param info: Dictionary with any useful information related to this trace element. (sql request, rpc message or url...)
+        :param info: Dictionary with any useful information related to this
+                     trace element. (sql request, rpc message or url...)
         """
 
         info = info or {}
-        info["host"]: str = self._host
+        info["host"] = self._host
         self._name.append(name)
         self._trace_stack.append(str(uuidutils.generate_uuid()))
         self._notify("%s-start" % name, info)
 
-    def stop(self, info: Optional[dict] = None):
-        """Finish latest event. Same as a start, but instead of pushing trace_id to stack it pops it.
+    def stop(self, info=None):
+        """Finish latest event.
+
+        Same as a start, but instead of pushing trace_id to stack it pops it.
 
         :param info: Dict with useful info. It will be send in notification.
         """
@@ -444,17 +423,14 @@ class _Profiler(object):
         self._notify("%s-stop" % self._name.pop(), info)
         self._trace_stack.pop()
 
-    def _notify(self, name: str, info: dict):
-        """Send notification to collector. This method is executed at server-side.
-
-        :param name: name of trace element (db-start, db-stop, wsgi-start, wsgi-stop, etc..)
-        """
+    def _notify(self, name, info):
         payload = {
             "name": name,
             "base_id": self.get_base_id(),
             "trace_id": self.get_id(),
             "parent_id": self.get_parent_id(),
-            "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f"),
+            "timestamp": datetime.datetime.utcnow().strftime(
+                "%Y-%m-%dT%H:%M:%S.%f"),
         }
         if info:
             payload["info"] = info

@@ -40,10 +40,9 @@ extensions = [
 ]
 
 # openstackdocstheme options
-openstackdocs_repo_name = 'openstack/osprofiler'
-openstackdocs_auto_name = False
-openstackdocs_bug_project = 'osprofiler'
-openstackdocs_bug_tag = ''
+repository_name = 'openstack/osprofiler'
+bug_project = 'osprofiler'
+bug_tag = ''
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -58,8 +57,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'osprofiler Release Notes'
-copyright = '2016, osprofiler Developers'
+project = u'osprofiler Release Notes'
+copyright = u'2016, osprofiler Developers'
 
 # Release notes do not need a version in the title, they span
 # multiple versions.
@@ -98,7 +97,7 @@ exclude_patterns = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'native'
+pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -149,6 +148,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -209,8 +209,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'osprofilerReleaseNotes.tex',
-     'osprofiler Release Notes Documentation',
-     'osprofiler Developers', 'manual'),
+     u'osprofiler Release Notes Documentation',
+     u'osprofiler Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -240,8 +240,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'osprofilerReleaseNotes',
-     'osprofiler Release Notes Documentation',
-     ['osprofiler Developers'], 1)
+     u'osprofiler Release Notes Documentation',
+     [u'osprofiler Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -255,8 +255,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'osprofilerReleaseNotes',
-     'osprofiler Release Notes Documentation',
-     'osprofiler Developers', 'osprofilerReleaseNotes',
+     u'osprofiler Release Notes Documentation',
+     u'osprofiler Developers', 'osprofilerReleaseNotes',
      'One line description of project.',
      'Miscellaneous'),
 ]

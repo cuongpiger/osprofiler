@@ -1,5 +1,1 @@
-=========
-ChangeLog
-=========
-
 .. include:: ../../../ChangeLog
