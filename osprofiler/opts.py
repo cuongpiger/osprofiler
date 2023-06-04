@@ -12,8 +12,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from typing import Optional
 
 from oslo_config import cfg
+from setuptools._entry_points import _
 
 from osprofiler import web
 
@@ -215,10 +217,12 @@ _JAEGER_OPTS = [
 cfg.CONF.register_opts(_JAEGER_OPTS, group=_jaegerprofiler_opt_group)
 
 
-def set_defaults(conf, enabled=None, trace_sqlalchemy=None, hmac_keys=None,
+def set_defaults(conf: cfg.ConfigOpts, enabled=None, trace_sqlalchemy=None, hmac_keys=None,
                  connection_string=None, es_doc_type=None,
                  es_scroll_time=None, es_scroll_size=None,
-                 socket_timeout=None, sentinel_service_name=None):
+                 socket_timeout=None, sentinel_service_name=None,
+                 enable_http_request_trace_opt: Optional[bool] = None,
+                 http_request_tracing_token: Optional[bool] = None):
     conf.register_opts(_PROFILER_OPTS, group=_profiler_opt_group)
 
     if enabled is not None:
@@ -233,6 +237,14 @@ def set_defaults(conf, enabled=None, trace_sqlalchemy=None, hmac_keys=None,
 
     if connection_string is not None:
         conf.set_default("connection_string", connection_string,
+                         group=_profiler_opt_group.name)
+
+    if enable_http_request_trace_opt is not None:
+        conf.set_default("enable_http_request_trace", enable_http_request_trace_opt,
+                         group=_profiler_opt_group.name)
+
+    if http_request_tracing_token is not None:
+        conf.set_default("http_request_tracing_token", http_request_tracing_token,
                          group=_profiler_opt_group.name)
 
     if es_doc_type is not None:
@@ -256,19 +268,19 @@ def set_defaults(conf, enabled=None, trace_sqlalchemy=None, hmac_keys=None,
                          group=_profiler_opt_group.name)
 
 
-def is_trace_enabled(conf=None):
+def is_trace_enabled(conf: Optional[cfg.ConfigOpts] = None):
     if conf is None:
         conf = cfg.CONF
     return conf.profiler.enabled
 
 
-def is_db_trace_enabled(conf=None):
+def is_db_trace_enabled(conf: Optional[cfg.ConfigOpts] = None):
     if conf is None:
         conf = cfg.CONF
     return conf.profiler.enabled and conf.profiler.trace_sqlalchemy
 
 
-def enable_web_trace(conf=None):
+def enable_web_trace(conf: Optional[cfg.ConfigOpts] = None):
     if conf is None:
         conf = cfg.CONF
     if conf.profiler.enabled:
