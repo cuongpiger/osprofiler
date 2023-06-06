@@ -15,7 +15,6 @@
 from typing import Optional
 
 from oslo_config import cfg
-from setuptools._entry_points import _
 
 from osprofiler import web
 
